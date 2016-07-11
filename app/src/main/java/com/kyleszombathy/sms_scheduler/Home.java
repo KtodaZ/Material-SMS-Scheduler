@@ -1,16 +1,15 @@
 package com.kyleszombathy.sms_scheduler;
 
-import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
@@ -32,10 +31,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
 import android.widget.Toolbar;
 
 import com.amulyakhare.textdrawable.TextDrawable;
 import com.amulyakhare.textdrawable.util.ColorGenerator;
+import com.daimajia.androidanimations.library.Techniques;
+import com.daimajia.androidanimations.library.YoYo;
 import com.github.amlcurran.showcaseview.ShowcaseView;
 import com.github.amlcurran.showcaseview.targets.Target;
 import com.github.amlcurran.showcaseview.targets.ViewTarget;
@@ -51,11 +54,12 @@ public class Home extends Activity {
     private static final String TAG = "HOME";
     private static final String ALARM_EXTRA = "alarmNumber";
     private static final String EDIT_MESSAGE_EXTRA = "EDIT_MESSAGE";
-    public final int circleImageViewWidth = 56;
+    private final int circleImageViewWidth = 56;
     private SwipeRefreshLayout swipeContainer;
     // Recyclerview adapter dataset
+    private RelativeLayout mRecyclerEmptyState;
     private RecyclerView mRecyclerView;
-    public RecyclerView.Adapter mAdapter;
+    public RecyclerAdapter mAdapter;
     public RecyclerView.LayoutManager mLayoutManager;
     public ArrayList<String> nameDataset = new ArrayList<>();
     public ArrayList<String> messageContentDataset = new ArrayList<>();
@@ -63,7 +67,7 @@ public class Home extends Activity {
     public ArrayList<String> timeDataSet = new ArrayList<>();
     public ArrayList<Integer> alarmNumberDataset = new ArrayList<>();
     public ArrayList<String> uriDataset = new ArrayList<>();
-    private ArrayList<Bitmap> photoDataset= new ArrayList<>();
+    public ArrayList<Bitmap> photoDataset= new ArrayList<>();
     // For random number retrieval
     private final int MAX_INT = Integer.MAX_VALUE ;
     private final int MIN_INT = 1;
@@ -71,7 +75,7 @@ public class Home extends Activity {
     private static final int NEW_MESSAGE = 1;
     private static final int EDIT_MESSAGE = 0;
     private int tempSelectedPosition;
-
+    private int oldAlarmNumber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,14 +86,9 @@ public class Home extends Activity {
         getWindow().setExitTransition(new Fade());
 
         setContentView(R.layout.activity_home);
-        ObjectAnimator mAnimator;
-        //mAnimator = ObjectAnimator.ofFloat(Home.this, View.X, View.Y, path);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setActionBar(toolbar);
-
-        // Showcase TODO
-        //showcase();
 
         readFromSQLDatabase();
         setUpRecyclerView();
@@ -101,7 +100,8 @@ public class Home extends Activity {
             @Override
             public void onRefresh() {
                 new Handler().postDelayed(new Runnable() {
-                    @Override public void run() {
+                    @Override
+                    public void run() {
                         readFromSQLDatabase();
                         mAdapter.notifyDataSetChanged();
                         swipeContainer.setRefreshing(false);
@@ -291,7 +291,7 @@ public class Home extends Activity {
     }
 
     /**Adds date and time string as relative time to now to database*/
-    public void setFullDateAndTime(int year, int month, int day, int hour, int minute) {
+    private void setFullDateAndTime(int year, int month, int day, int hour, int minute) {
         //Calendar date = new GregorianCalendar(year, month, day, hour, minute);
         GregorianCalendar date = new GregorianCalendar(year, month, day, hour, minute);
         GregorianCalendar dateNow = new GregorianCalendar();
@@ -307,52 +307,8 @@ public class Home extends Activity {
         timeDataSet.add(timeString);
     }
 
-    /**Sets given item as archived in database*/
-    private void setAsArchived(int alarmNumb) {
-        MessageDbHelper mDbHelper = new MessageDbHelper(Home.this);
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
-        // New value for one column
-        ContentValues values = new ContentValues();
-        values.put(MessageContract.MessageEntry.
-                ARCHIVED, 1);
-
-        // Which row to update, based on the ID
-        String selection = MessageContract.MessageEntry.ALARM_NUMBER + " LIKE ?";
-        String[] selectionArgs = { String.valueOf(alarmNumb) };
-
-        int count = db.update(
-                MessageContract.MessageEntry.TABLE_NAME,
-                values,
-                selection,
-                selectionArgs);
-        db.close();
-        mDbHelper.close();
-    }
-    /**Removes Item given alarm Number from database*/
-    private void deleteFromDatabase(int alarmNumb) {
-        MessageDbHelper mDbHelper = new MessageDbHelper(Home.this);
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
-        // Which row to delete, based on the ID
-        String selection = MessageContract.MessageEntry.ALARM_NUMBER + " LIKE ?";
-        String[] selectionArgs = { String.valueOf(alarmNumb) };
-
-        db.delete(
-                MessageContract.MessageEntry.TABLE_NAME,
-                selection,
-                selectionArgs);
-        db.close();
-        mDbHelper.close();
-    }
-
-    private void getNextAlarmClock() {
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        Long alarmTime = alarmManager.getNextAlarmClock().getTriggerTime();
-        Log.i(TAG, "Next Alarm : " + alarmTime);
-    }
-
-    /**Cancels alarm given alarm number*/
+    /**Cancels alarm given alarm service number
+     * @param alarmNumb alarmNumber to delete*/
     private void cancelAlarm(int alarmNumb) {
         Intent intent = new Intent(this, MessageAlarmReceiver.class);
         PendingIntent sender = PendingIntent.getBroadcast(this, alarmNumb, intent, 0);
@@ -365,10 +321,10 @@ public class Home extends Activity {
     //=============== Recyclerview edit and delete ===============//
     /**Sets up recycler view and adapter*/
     private void setUpRecyclerView() {
+        // Empty state
+        mRecyclerEmptyState = (RelativeLayout) findViewById(R.id.recycler_empty_state);
         // Setting up RecyclerView
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-/*        mRecyclerView.addItemDecoration(new DividerItemDecoration(Home.this,
-                DividerItemDecoration.VERTICAL_LIST));*/
         mRecyclerView.setHasFixedSize(true);
 
         mLayoutManager = new LinearLayoutManager(this);
@@ -385,19 +341,24 @@ public class Home extends Activity {
                             @Override
                             public void onItemClick(View view, int position) {
                                 tempSelectedPosition = position;
+                                oldAlarmNumber = alarmNumberDataset.get(position);
+                                int newAlarmNumber = getRandomInt(MIN_INT, MAX_INT);
+
+                                // Update Adapter with new alarm number
+                                alarmNumberDataset.set(position, newAlarmNumber);
 
                                 // Create new intent to AddMessage with data from item in position
                                 Intent intent = new Intent(new Intent(Home.this, AddMessage.class));
                                 Bundle extras = new Bundle();
                                 // Older alarm. For SQL retrieval
-                                extras.putInt(ALARM_EXTRA, alarmNumberDataset.get(position));
+                                extras.putInt(ALARM_EXTRA, oldAlarmNumber);
                                 // New alarm number
-                                extras.putInt("NEW_ALARM", getRandomInt(MIN_INT, MAX_INT));
+                                extras.putInt("NEW_ALARM", newAlarmNumber);
                                 // Designates that we're editing the message
                                 extras.putBoolean(EDIT_MESSAGE_EXTRA, true);
                                 intent.putExtras(extras);
 
-                                // Go to addMessage
+                                // Go to AddMessage
                                 startActivityForResult(intent, EDIT_MESSAGE,
                                         ActivityOptions.makeSceneTransitionAnimation(Home.this).toBundle());
                             }
@@ -405,10 +366,25 @@ public class Home extends Activity {
         );
     }
 
+    /**Initializes the Recycler Adapter*/
     private void updateRecyclerViewAdapter() {
         mAdapter = new RecyclerAdapter(
                 nameDataset, messageContentDataset, dateDataset, timeDataSet, uriDataset, photoDataset);
         mRecyclerView.setAdapter(mAdapter);
+
+        enableDisableEmptyStateIfNeeded();
+    }
+
+    private void enableDisableEmptyStateIfNeeded() {
+        if (nameDataset.isEmpty()) {
+            mRecyclerEmptyState.setX(0);
+            YoYo.with(Techniques.FadeIn)
+                    .duration(700)
+                    .playOn(mRecyclerEmptyState);
+        } else {
+            // Moves view out of way. If turned off, creates weird bug on swipe
+            mRecyclerEmptyState.setX(10000);
+        }
     }
 
     /**Swipe to delete function*/
@@ -440,31 +416,23 @@ public class Home extends Activity {
                     final Bitmap TEMP_PHOTO = photoDataset.remove(position);
                     mAdapter.notifyItemRemoved(position);
 
+                    // Solves ghost issue and insert empty state
+                    if (nameDataset.size() == 0) {
+                        updateRecyclerViewAdapter();
+                    }
+
+                    // Deletes alarm and sets as archived
+                    if (alarmNumberDataset.indexOf(TEMP_ALARM) == -1) {
+                        cancelAlarm(TEMP_ALARM);
+                        Tools.setAsArchived(Home.this, TEMP_ALARM);
+                    }
+                    // Update Recyclerview
+                    returnToDefaultPosition();
+
                     // Makes snackbar with undo button
                     Snackbar.make(findViewById(R.id.coordLayout),
                             "1 "+ getString(R.string.archived),
-                            Snackbar.LENGTH_LONG).setCallback( new Snackbar.Callback() {
-                        @Override
-                        public void onDismissed(Snackbar snackbar, int event) {
-                            switch(event) {
-                                // Case for all events when the dataset needs to be deleted
-                                case Snackbar.Callback.DISMISS_EVENT_TIMEOUT:
-                                case Snackbar.Callback.DISMISS_EVENT_CONSECUTIVE:
-                                case Snackbar.Callback.DISMISS_EVENT_SWIPE:
-                                    if (alarmNumberDataset.indexOf(TEMP_ALARM) == -1) {
-                                        cancelAlarm(TEMP_ALARM);
-                                        setAsArchived(TEMP_ALARM);
-                                    }
-                                    returnToDefaultPosition();
-                                    // Update Recyclerview
-                                    mAdapter.notifyItemRangeChanged(position,nameDataset.size());
-                                    break;
-                            }
-                        }
-                        @Override
-                        public void onShown(Snackbar snackbar) {
-                        }
-                    }).setAction("Undo", new View.OnClickListener() {
+                            Snackbar.LENGTH_LONG).setAction("Undo", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             // Add back temp values
@@ -475,10 +443,14 @@ public class Home extends Activity {
                             alarmNumberDataset.add(position, TEMP_ALARM);
                             uriDataset.add(position, TEMP_URI);
                             photoDataset.add(position, TEMP_PHOTO);
+                            // Remove empty state
+                            enableDisableEmptyStateIfNeeded();
                             // Return to default position
                             returnToDefaultPosition();
+                            //mAdapter.notifyItemRangeChanged(position,nameDataset.size());
                             mAdapter.notifyItemInserted(position);
                             mRecyclerView.scrollToPosition(position);
+                            returnToDefaultPosition();
                         }
                     }).show();
                 }
@@ -501,6 +473,7 @@ public class Home extends Activity {
                 public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
                     if (viewHolder != null) {
                         getDefaultUIUtil().onSelected(((RecyclerAdapter.ViewHolder) viewHolder).getSwipableView());
+                        this.viewHolder = viewHolder;
                     }
                 }
 
@@ -510,13 +483,6 @@ public class Home extends Activity {
                     this.viewHolder = viewHolder;
                     this.actionState = actionState;
                     this.isCurrentlyActive = isCurrentlyActive;
-                    if (dX < 0) {
-                        ((RecyclerAdapter.ViewHolder) viewHolder).getmRevealRightView().setVisibility(View.GONE);
-                        ((RecyclerAdapter.ViewHolder) viewHolder).getmRevealLeftView().setVisibility(View.VISIBLE);
-                    } else {
-                        ((RecyclerAdapter.ViewHolder) viewHolder).getmRevealRightView().setVisibility(View.VISIBLE);
-                        ((RecyclerAdapter.ViewHolder) viewHolder).getmRevealLeftView().setVisibility(View.GONE);
-                    }
                     getDefaultUIUtil().onDraw(c, recyclerView, ((RecyclerAdapter.ViewHolder) viewHolder).getSwipableView(), dX, dY,    actionState, isCurrentlyActive);
                 }
 
@@ -573,22 +539,30 @@ public class Home extends Activity {
     /** Retrieves results on return from AddMessage and creates animations*/
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check if able to send sms
+        PackageManager pm = this.getPackageManager();
+        if (!pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY) &&
+                !pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY_CDMA)) {
+            Toast.makeText(this, R.string.home_cantSendMessages, Toast.LENGTH_SHORT).show();
+        }
+
         if (resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
 
             // Delete old stuff
             if (requestCode == EDIT_MESSAGE) {
-                int oldAlarmNumber = alarmNumberDataset.get(tempSelectedPosition);
                 cancelAlarm(oldAlarmNumber);
-                deleteFromDatabase(oldAlarmNumber);
+                Tools.deleteAlarmNumberFromDatabase(Home.this, oldAlarmNumber);
             }
 
-            // Update all items
+            // Update all items from db
             readFromSQLDatabase();
 
             // Get new alarm number position
-            Bundle extras = data.getExtras();
             int position = alarmNumberDataset.indexOf(extras.getInt("ALARM_EXTRA"));
 
+            // Remove empty state
+            enableDisableEmptyStateIfNeeded();
 
             // Remove previous position if edit message
             // Deisgnates that user did not cancel edit message function
@@ -600,6 +574,11 @@ public class Home extends Activity {
             if (requestCode == NEW_MESSAGE) {
                 mAdapter.notifyItemInserted(position);
                 mRecyclerView.scrollToPosition(position);
+            }
+        } else {
+            if (requestCode == EDIT_MESSAGE) {
+                // Edit message altered the alarm number. Return it to the old alarm number now
+                alarmNumberDataset.set(tempSelectedPosition, oldAlarmNumber);
             }
         }
     }
@@ -614,6 +593,10 @@ public class Home extends Activity {
         alarmNumberDataset.remove(position);
         uriDataset.remove(position);
         photoDataset.remove(position);
+        // Show empty state if necessary
+        if (nameDataset.isEmpty()) {
+            updateRecyclerViewAdapter();
+        }
     }
 
     //=============== Broadcast Receiver ===============//
@@ -622,15 +605,16 @@ public class Home extends Activity {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
+            String notificationMessage = intent.getStringExtra("notificationMessage");
             int alarmNumber = intent.getIntExtra("alarmNumber", -1);
-            if (alarmNumber != -1) {
-                setAsArchived(alarmNumber);
-            }
             int position = alarmNumberDataset.indexOf(alarmNumber);
             if(position != -1) {
                 removeFromDataset(position);
                 mAdapter.notifyItemRemoved(position);
             }
+            Snackbar snackbar = Snackbar
+                    .make(findViewById(R.id.coordLayout), notificationMessage, Snackbar.LENGTH_LONG);
+            snackbar.show();
         }
     };
 
