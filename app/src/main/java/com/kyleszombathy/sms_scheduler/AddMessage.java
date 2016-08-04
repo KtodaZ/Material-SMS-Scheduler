@@ -160,6 +160,7 @@ public class AddMessage extends AppCompatActivity
         phoneRetv.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
         phoneRetv.setAdapter(new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this));
         phoneRetv.addTextChangedListener(phoneRetvEditTextWatcher);
+        phoneRetv.getAdapter().setShowMobileOnly(false);
 
         // Remove any ghost errors
         messageContentEditText.getBackground().setColorFilter(getResources().
