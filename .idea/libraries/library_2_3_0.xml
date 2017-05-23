@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="library-2.3.0">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/app/build/intermediates/exploded-aar/com.code-troopers.betterpickers/library/2.3.0/jars/classes.jar!/" />
-      <root url="file://$PROJECT_DIR$/app/build/intermediates/exploded-aar/com.code-troopers.betterpickers/library/2.3.0/res" />
+      <root url="jar://$USER_HOME$/.android/build-cache/416f7fa8cee1f03c1ceb6f0d4ef470feb3ec48d2/output/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.android/build-cache/416f7fa8cee1f03c1ceb6f0d4ef470feb3ec48d2/output/res" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>

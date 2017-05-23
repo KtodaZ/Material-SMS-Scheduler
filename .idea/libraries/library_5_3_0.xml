@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="library-5.3.0">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/app/build/intermediates/exploded-aar/com.github.amlcurran.showcaseview/library/5.3.0/jars/classes.jar!/" />
-      <root url="file://$PROJECT_DIR$/app/build/intermediates/exploded-aar/com.github.amlcurran.showcaseview/library/5.3.0/res" />
+      <root url="file://$USER_HOME$/.android/build-cache/eb8f7ef626c7c84d77996b425402d892c7f93ac3/output/res" />
+      <root url="jar://$USER_HOME$/.android/build-cache/eb8f7ef626c7c84d77996b425402d892c7f93ac3/output/jars/classes.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>

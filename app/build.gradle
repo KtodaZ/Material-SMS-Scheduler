@@ -2,12 +2,12 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 24
-    buildToolsVersion '23.0.2'
+    buildToolsVersion '25.0.0'
 
     defaultConfig {
         applicationId "com.kyleszombathy.sms_scheduler"
         minSdkVersion 21
-        targetSdkVersion 24
+        targetSdkVersion 25
         versionCode 3
         versionName "1.0.2"
         
@@ -50,8 +50,9 @@ dependencies {
     compile 'jp.wasabeef:recyclerview-animators:2.1.0'
     compile 'de.hdodenhof:circleimageview:2.0.0'
     compile 'uk.co.samuelwall:material-tap-target-prompt:1.7.0'
-    compile 'com.klinkerapps:android-smsmms:0.3.1-SNAPSHOT'
     compile 'com.code-troopers.betterpickers:library:2.3.0'
+
+    // Manual Implementations
     compile project(':lib')
     compile project(':TextDrawable')
 }
