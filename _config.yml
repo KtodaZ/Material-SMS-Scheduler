@@ -1,0 +1,8 @@
+title: Sms scheduler
+description: An android app to schedule SMS messages with a simple user interface. CSC 131 project by Kyle Szombathy and Jonah Johnson
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-minimal
+
+gems:
+  - jekyll-mentions
