@@ -1,5 +1,5 @@
 # Material SMS Scheduler
-Originally a class project by myself, Kyle Szombathy and classmate Jonah Johnson, I have since taken over this project and have developed it from an idea into a full-fledged app. 
+A class project that quickly turned into an obsession and public android app. 
 This project has solidified my expertise of Java, helped me learn the Android ecosystem as well as features like SQLite, implementing and modifying 3rd party libraries, and much, much more.
 https://play.google.com/store/apps/details?id=com.kyleszombathy.sms_scheduler&hl=en
 
