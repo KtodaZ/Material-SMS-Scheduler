@@ -15,4 +15,4 @@ This project has solidified my knowledge of Java and OOP, showed me the results 
 For the was the culmination of our efforts in CSC 131 at Sac State, we wrote documentation and shared our early vision for the app.
 
 ## Privacy Policy
-<a href="https://github.com/KtodaZ/Material-SMS-Scheduler/blob/gh-pages/privacyPolicy.md" title="PrivacyPolicy">Privacy Policy</a>
+<a href="privacyPolicy.html" title="PrivacyPolicy">Privacy Policy</a>
